@@ -1,0 +1,79 @@
+#! /bin/bash
+
+echo <<EOF
+##### poweroff ##### by Wilson Lisan v1.0
+Scripting untuk shutdown semua node.
+Cara menggunakan:
+1. Edit variable basename, masternode, bawah, dan atas
+2. Syntax: ./poweroff
+3. Ikuti petunjuk untuk memilih mematikan semua node atau hanya slave 
+EOF
+
+# Masukkan nama hostname cluster tanpa index angka
+basename=polarbear
+
+# Masukkan nama hostname node master
+masternode=${basename}1
+
+# Masukkan indeks node slave
+bawah=2
+atas=3
+
+# Pesan reminder & press anything to continue
+echo "REMINDER: shutdown server critial mission 24/7 adalah sesuatu luar biasa yang membutuhkan autenkasi semua pihak!"
+read -n 1 -s -r -p "Press any key to continue:"
+
+# Memastikan sys-admin sudah menyesuaikan variabel diatas untuk mesinnya
+echo ""
+echo ""
+echo "Apakah daftar hostname node dibawah ini sudah benar?:"
+echo "MASTER	:${masternode}"
+echo "SLAVE	:${basename}$bawah - ${basename}$atas"
+
+while true; do
+	read -p "y/n:" answer
+	case $answer in
+		[n] ) echo "Silahkan edit nama hostname dan index supaya sesuai dengan kluster Anda di script poweroff"; exit;;
+		[y] ) break;;
+		* ) echo "Tolong jawab dengan y (yes) atau n (no)";;
+	esac
+done
+
+# Autenkasi final
+yesorno () {
+	while true; do
+		read -p "Yakin untuk melakukan proses shutdown? y/n:" final
+		case $final in
+			[y] ) break;;
+			[n] ) "Proses shutdown dibatalkan"; exit;;
+			* ) echo "Tolong jawab dengan y (yes) atau n (no)";;
+		esac
+	done
+}
+
+# Fungsi utama untuk shutdown slave nodes 
+poweroff_slave () {
+	for (( i=$bawah; i<=$atas; i++ ))
+	do
+		echo "---------- Shutdown node ${basename}$i ----------"
+		ssh ${basename}$i 'sudo poweroff'
+		echo "Shutdown node ${basename}$i selesai"
+	done
+}
+
+# User memilih apakah mau shotdown semua node atau hanya slave saja
+echo ""
+echo "Node mana yang mau di matikan?"
+
+while true; do
+	read -p "Masukkan input 'A' untuk semua node atau 'S' untuk slave saja:" node
+	case $node in
+		[A] ) yesorno; poweroff_slave; break;;
+		[S] ) yesorno; poweroff_slave; echo "Proses shutdown node SLAVE selesai"; exit;;
+		* ) echo "Tolong pilih 'ALL' atau 'SLAVE'";;
+	esac
+done
+
+# Shutdown master
+echo "---------- Shutdown node ${masternode} ----------"
+sudo poweroff 

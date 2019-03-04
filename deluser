@@ -1,0 +1,81 @@
+#! /bin/bash
+
+echo <<EOF
+##### adduser ##### by Wilson Lisan v1.0
+Scripting untuk menambah user baru pada semua node.
+Cara menggunakan:
+1. Edit variable basename, masternode, bawah, dan atas
+2. Masukkan nama user saat diminta oleh program
+2. Syntax: ./adduser
+EOF
+
+# Masukkan nama hostname cluster tanpa index angka
+basename=polarbear
+
+# Masukkan nama hostname node master
+masternode=${basename}1
+
+# Masukkan indeks node slave
+bawah=2
+atas=3
+
+# Memastikan sys-admin sudah menyesuaikan variabel diatas untuk mesinnya
+echo "Apakah daftar hostname node dibawah ini sudah benar untuk penambahan user baru di kluster Anda?"
+echo "MASTER	:${masternode}"
+echo "SLAVE	:${basename}$bawah - ${basename}$atas"
+
+while true; do
+	read -p "y/n:" answer
+	case $answer in
+		[n] ) echo "Silahkan edit variabel nama hostname dan index yang mau ditambah user di script deluser"; exit;;
+		[y] ) break;;
+		* ) echo "Tolong jawab dengan y (yes) atau n (no)";;
+	esac
+done
+
+# Program berhenti ketika ada argumen yang dimasukkan
+if [ $# -gt 0 ]
+then
+	echo "Tidak ada argumen"
+	exit
+fi
+
+# Menghapus user
+echo "Masukkan nama user yang akan dihapus:"
+read username
+
+# Cek apakah user yang ada dibuat sudah diambil namanya atau belum 
+if id "$username" >/dev/null 2>&1; then
+	:
+else
+	echo "user ${username} tidak ada atau sudah terhapus"
+	exit
+fi
+
+# Konfirmasi akhir
+echo "User ${username} akan dihapus beserta directory home-nya dan TIDAK BISA di kembalikan lagi"
+
+while true; do
+	read -p "Yakin? y/n:" confirm
+	case $confirm in
+		[n] ) echo "Proses menghapus user ${username} dibatalkan"; exit;;
+		[y] ) echo "Proses menghapus user ${username} dimulai"; break;;
+		* ) echo "Tolong jawab dengan y (yes) atau n (no)";;
+	esac
+done
+
+# Menghapus user di node master beserta directory home
+echo "----- Menghapus user $username di node ${masternode} -----"
+sudo deluser -remove-home $username
+echo "===== User ${username} telah berhasil dihapus di node ${masternode} ====="
+
+# Menghapus user baru di node slave 
+for (( i=$bawah; i<=atas; i++ ))
+do
+	echo ""
+	echo "----- Menghapus user $username di node ${basename}$i -----"
+	ssh ${basename}$i bash -c "'
+	sudo deluser -remove-home $username
+	'"
+	echo "===== User ${username} telah berhasil dihapus di node ${basename}$i ====="
+done

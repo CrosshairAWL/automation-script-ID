@@ -1,0 +1,42 @@
+#! /bin/bash
+
+echo <<EOF
+##### run-command-all ##### by Wilson Lisan v1.0
+Scripting untuk menjalankan perintah di node slave.
+Cara menggunakan:
+1. Edit variabel basename, bawah, dan atas 
+2. Syntax: ./run-command-slave <command>
+Contoh: 
+./run-command-all sudo apt-get update 
+Melakukan update disemua node slave
+EOF
+
+# Masukkan nama hostname cluster tanpa index angka
+basename=polarbear
+
+# Masukkan indeks node slave 
+bawah=2
+atas=3
+
+# Memastikan sys-admin konfirmasi nama node dan menjalankan command atau tidak
+echo "Menjalankan $@ di SLAVE ${basename}$bawah - ${basename}$atas ?"
+
+while true; do
+	read -p "y/n:" answer
+	case $answer in
+		[n] ) echo "Perintah dibatalkan"; echo "Bila nama hostname tidak benar, edit nama hostname di script run-command-slave"; exit;;
+		[y] ) break;;
+		* ) echo "Tolong jawab dengan y (yes) atau n (no)";;
+	esac
+done
+
+# Perintah install untuk node slave 
+for (( i=$bawah; i<=$atas; i++ ))
+do
+	echo ""
+	echo "----- melakukan '$@' pada node ${basename}$i -----"
+	ssh ${basename}$i bash -c "'
+	$@
+	echo "===== proses '$@' di node ${basename}$i selesai ====="
+	'"
+done 
